@@ -3,7 +3,8 @@ import { openDB } from 'idb';
 const DB_NAME = 'PromptHubDB';
 const STORE_NAME = 'prompts';
 const CATEGORY_STORE_NAME = 'categories';
-const DB_VERSION = 5; // Increment the version to force an upgrade
+const LLM_STORE_NAME = 'llms';
+const DB_VERSION = 6; // Increment the version to force an upgrade
 
 function generateUniqueId() {
   return `id_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -12,50 +13,77 @@ function generateUniqueId() {
 async function initDB() {
   return openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
-      // Create object stores and indexes if they don't exist
       if (!db.objectStoreNames.contains(CATEGORY_STORE_NAME)) {
         const categoriesStore = db.createObjectStore(CATEGORY_STORE_NAME, { keyPath: 'id' });
         categoriesStore.createIndex('name', 'name', { unique: false });
       }
 
+      if (!db.objectStoreNames.contains(LLM_STORE_NAME)) {
+        const llmStore = db.createObjectStore(LLM_STORE_NAME, { keyPath: 'id' });
+        llmStore.createIndex('name', 'name', { unique: false });
+      }
+
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const promptsStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         promptsStore.createIndex('category', 'category', { unique: false });
+        promptsStore.createIndex('llm', 'llm', { unique: false });
         promptsStore.createIndex('usageCount', 'usageCount', { unique: false });
       }
     },
   });
 }
 
-export async function getAllPrompts() {
+// LLM Management
+export async function getAllLLMs() {
   const db = await initDB();
-  const allPrompts = await db.getAll(STORE_NAME); // Get all prompts directly from the object store
-  console.log("allPrompts");
-  console.log(allPrompts);
-  return allPrompts.filter(prompt => prompt.active === 'Active');
+  return db.getAll(LLM_STORE_NAME);
 }
 
-export async function getPromptsByCategory(categoryId) {
+export async function addLLM(name, url) {
+  const db = await initDB();
+  const id = generateUniqueId(); 
+  return db.add(LLM_STORE_NAME, { id, name, url });
+}
+
+export async function updateLLM(id, newName, newUrl) {
+  const db = await initDB();
+  const llm = await db.get(LLM_STORE_NAME, id);
+  llm.name = newName;
+  llm.url = newUrl;
+  return db.put(LLM_STORE_NAME, llm);
+}
+
+export async function deleteLLM(id) {
+  const db = await initDB();
+  return db.delete(LLM_STORE_NAME, id);
+}
+
+// Prompt Management
+export async function getAllPrompts() {
+  const db = await initDB();
+  return db.getAll(STORE_NAME);
+}
+
+export async function getPromptsByCategory(category) {
   const allPrompts = await getAllPrompts();
-  console.log("allPrompts");
-  console.log(allPrompts);
-  if (categoryId === 'All') {
+  if (category === 'All') {
     return allPrompts;
   }
-  return allPrompts.filter(prompt => prompt.categoryId === categoryId);
+  return allPrompts.filter(prompt => prompt.category === category);
+}
+
+export async function getPromptsByLLM(llmId) {
+  const allPrompts = await getAllPrompts();
+  if (llmId === 'All') {
+    return allPrompts;
+  }
+  return allPrompts.filter(prompt => prompt.llm === llmId);
 }
 
 export async function addPrompt(prompt) {
-  console.log("Adding prompt:");
-  console.log(prompt);
-
-  // Ensure prompt has a unique ID
-  if (!prompt.id) {
-    prompt.id = generateUniqueId(); // Generate an ID if not provided
-  }
-
   const db = await initDB();
-  return db.add(STORE_NAME, { ...prompt, usageCount: 0 });
+  const id = generateUniqueId();
+  return db.add(STORE_NAME, { ...prompt, id, usageCount: 0 });
 }
 
 export async function updatePrompt(id, updatedPrompt) {
@@ -75,20 +103,23 @@ export async function deletePrompt(id) {
   return db.delete(STORE_NAME, id);
 }
 
+// Category Management
 export async function getAllCategories() {
   const db = await initDB();
-  return db.getAll(CATEGORY_STORE_NAME); // Get all categories directly from the object store
+  return db.getAll(CATEGORY_STORE_NAME);
 }
 
 export async function addCategory(name) {
   const db = await initDB();
-  const id = generateUniqueId(); // Function to generate a unique identifier
+  const id = generateUniqueId();
   await db.add(CATEGORY_STORE_NAME, { id, name });
 }
 
 export async function updateCategory(id, newName) {
   const db = await initDB();
-  await db.put(CATEGORY_STORE_NAME, { id, name: newName });
+  const category = await db.get(CATEGORY_STORE_NAME, id);
+  category.name = newName;
+  await db.put(CATEGORY_STORE_NAME, category);
 }
 
 export async function deleteCategory(id) {
@@ -96,14 +127,17 @@ export async function deleteCategory(id) {
   await db.delete(CATEGORY_STORE_NAME, id);
 }
 
+// Backup and Restore
 export async function exportDatabase() {
   const db = await initDB();
   const prompts = await db.getAll(STORE_NAME);
   const categories = await db.getAll(CATEGORY_STORE_NAME);
+  const llms = await db.getAll(LLM_STORE_NAME);
 
   const data = {
     prompts,
     categories,
+    llms,
   };
 
   const json = JSON.stringify(data, null, 2);
@@ -124,22 +158,26 @@ export async function importDatabase(file, onSuccess) {
   reader.onload = async (event) => {
     const data = JSON.parse(event.target.result);
 
-    if (data.prompts && data.categories) {
-      const transaction = db.transaction([STORE_NAME, CATEGORY_STORE_NAME], 'readwrite');
+    if (data.prompts && data.categories && data.llms) {
+      const transaction = db.transaction([STORE_NAME, CATEGORY_STORE_NAME, LLM_STORE_NAME], 'readwrite');
       const promptStore = transaction.objectStore(STORE_NAME);
       const categoryStore = transaction.objectStore(CATEGORY_STORE_NAME);
+      const llmStore = transaction.objectStore(LLM_STORE_NAME);
 
-      // Clear old data
       await promptStore.clear();
       await categoryStore.clear();
+      await llmStore.clear();
 
-      // Insert new data
       for (const prompt of data.prompts) {
         await promptStore.add(prompt);
       }
 
       for (const category of data.categories) {
         await categoryStore.add(category);
+      }
+
+      for (const llm of data.llms) {
+        await llmStore.add(llm);
       }
 
       transaction.oncomplete = () => {

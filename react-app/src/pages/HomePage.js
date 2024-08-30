@@ -21,11 +21,13 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { CopyIcon } from '@chakra-ui/icons';
-import { getAllCategories, getPromptsByCategory, incrementUsageCount } from '../indexeddb';
+import { getAllCategories, getPromptsByCategory, incrementUsageCount, getAllLLMs } from '../indexeddb';
 
 function HomePage() {
   const [categories, setCategories] = useState([]);
+  const [llms, setLLMs] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedLLM, setSelectedLLM] = useState('All');
   const [prompts, setPrompts] = useState([]);
   const [argumentsValues, setArgumentsValues] = useState({});
   const [keyword, setKeyword] = useState('');
@@ -34,40 +36,45 @@ function HomePage() {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  // Fetch categories and prompts on component mount
+  // Fetch categories, LLMs, and prompts on component mount
   useEffect(() => {
     async function fetchData() {
       const allCategories = await getAllCategories();
+      const allLLMs = await getAllLLMs();
       setCategories(allCategories);
+      setLLMs(allLLMs);
       const allPrompts = await getPromptsByCategory('All');
       setPrompts(allPrompts);
     }
     fetchData();
   }, []);
 
-  // Fetch prompts whenever selectedCategory or keyword changes
+  // Fetch prompts whenever selectedCategory, selectedLLM or keyword changes
   useEffect(() => {
     async function fetchPrompts() {
-      console.log(`Fetching prompts for category: ${selectedCategory}`); // Debug log
       const filteredPrompts = await getPromptsByCategory(selectedCategory);
-      console.log(`Filtered prompts:`, filteredPrompts); // Debug log
       const keywordFilteredPrompts = filteredPrompts.filter(prompt =>
-        prompt.title.toLowerCase().includes(keyword.toLowerCase()) ||
-        prompt.content.toLowerCase().includes(keyword.toLowerCase())
+        (selectedLLM === 'All' || prompt.llm === selectedLLM) &&
+        (prompt.title.toLowerCase().includes(keyword.toLowerCase()) ||
+        prompt.content.toLowerCase().includes(keyword.toLowerCase()))
       );
       keywordFilteredPrompts.sort((a, b) => b.usageCount - a.usageCount);
       setPrompts(keywordFilteredPrompts);
       setArgumentsValues({});
     }
     fetchPrompts();
-  }, [selectedCategory, keyword]);
+  }, [selectedCategory, selectedLLM, keyword]);
 
   // Find category name by category ID
   const getCategoryName = (categoryId) => {
-    console.log(`Looking up category ID: ${categoryId}`); // Debug log
     const category = categories.find(cat => cat.id === categoryId);
-    console.log(`Found category:`, category); // Debug log
     return category ? category.name : 'Unknown';
+  };
+
+  // Find LLM name by LLM ID
+  const getLLMName = (llmId) => {
+    const llm = llms.find(model => model.id === llmId);
+    return llm ? llm.name : 'Generic';
   };
 
   // Handle clipboard copy and increment usage count
@@ -122,6 +129,23 @@ function HomePage() {
               </option>
             ))}
           </Select>
+          <Select
+            value={selectedLLM}
+            onChange={(e) => setSelectedLLM(e.target.value)}
+            bg="white"
+            borderColor="gray.300"
+            focusBorderColor="brand.500"
+            maxW="300px"
+            fontSize="lg"
+          >
+            <option value="All">All LLMs</option>
+            <option value="generic">Generic</option>
+            {llms.map((llm) => (
+              <option key={llm.id} value={llm.id}>
+                {llm.name}
+              </option>
+            ))}
+          </Select>
           <Input
             placeholder="Search by keyword"
             value={keyword}
@@ -139,7 +163,10 @@ function HomePage() {
             <Box key={prompt.id} bg="white" p={4} borderRadius="md" shadow="sm">
               <Heading fontSize="xl" mb={2}>{prompt.title}</Heading>
               <HStack mb={2}>
-                <Badge colorScheme="teal">{getCategoryName(prompt.categoryId)}</Badge>
+                <Badge colorScheme="teal">{getCategoryName(prompt.category)}</Badge>
+                <Badge colorScheme={prompt.llm === 'generic' ? 'green' : 'blue'}>
+                  {getLLMName(prompt.llm)}
+                </Badge>
               </HStack>
               <Text fontSize="lg" color="gray.700">{prompt.content}</Text>
               <VStack mt={4} spacing={3} align="stretch">

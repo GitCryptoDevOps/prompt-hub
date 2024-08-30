@@ -1,0 +1,21 @@
+{
+  "name": "prompthub-extension",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "lint": "eslint 'src/**/*.{js,jsx}'"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^10.2.4",
+    "clean-webpack-plugin": "^4.0.0",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.0.0",
+    "webpack-dev-server": "^4.12.1",
+    "@babel/core": "^7.22.1",
+    "@babel/preset-env": "^7.22.0",
+    "babel-loader": "^8.2.5",
+    "html-webpack-plugin": "^5.5.0",
+    "mini-css-extract-plugin": "^2.7.0"
+  }
+}

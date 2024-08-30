@@ -14,11 +14,14 @@ function Navbar() {
             <Link as={NavLink} to="/" color="white" fontSize="lg" _hover={{ color: 'gray.200' }}>
               Home
             </Link>
+            <Link as={NavLink} to="/prompts" color="white" fontSize="lg" _hover={{ color: 'gray.200' }}>
+              Manage Prompts
+            </Link>
             <Link as={NavLink} to="/categories" color="white" fontSize="lg" _hover={{ color: 'gray.200' }}>
               Categories
             </Link>
-            <Link as={NavLink} to="/prompts" color="white" fontSize="lg" _hover={{ color: 'gray.200' }}>
-              Manage Prompts
+            <Link as={NavLink} to="/llms" color="white" fontSize="lg" _hover={{ color: 'gray.200' }}>
+              Manage LLMs
             </Link>
             <Link as={NavLink} to="/settings" color="white" fontSize="lg" _hover={{ color: 'gray.200' }}>
               Settings

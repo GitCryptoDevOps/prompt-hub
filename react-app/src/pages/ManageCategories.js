@@ -47,6 +47,11 @@ function ManageCategories() {
     setCategories(await getAllCategories());
   };
 
+  const handleCancelEdit = () => {
+    setEditCategory(null);
+    setCategoryName(''); // Réinitialiser le champ de saisie
+  };
+
   return (
     <Container maxW="container.xl" p={3}>
       <Box bg="gray.50" borderRadius="lg" shadow="md" p={4}>
@@ -64,6 +69,11 @@ function ManageCategories() {
           <Button onClick={handleAddCategory} colorScheme="brand" fontSize="lg">
             {editCategory ? 'Update' : 'Add'}
           </Button>
+          {editCategory && (
+            <Button onClick={handleCancelEdit} colorScheme="gray" fontSize="lg">
+              Cancel
+            </Button>
+          )}
         </HStack>
         <VStack align="start" spacing={4}>
           {categories.map((category) => (

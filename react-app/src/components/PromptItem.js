@@ -17,7 +17,7 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import { CopyIcon } from '@chakra-ui/icons';
-import { getAllCategories } from '../indexeddb';
+import { getAllCategories, getLLMById } from '../indexeddb';
 
 function PromptItem({ prompt }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -26,15 +26,19 @@ function PromptItem({ prompt }) {
   const [argumentsList, setArgumentsList] = useState([]);
   const [categories, setCategories] = useState([]);
   const [categoryName, setCategoryName] = useState('');
+  const [llm, setLLM] = useState(null);
 
-  // Fetch categories on component mount
+  // Fetch categories and LLM data on component mount
   useEffect(() => {
-    async function fetchCategories() {
+    async function fetchCategoriesAndLLM() {
       const allCategories = await getAllCategories();
       setCategories(allCategories);
+      
+      const llmData = await getLLMById(prompt.llm);
+      setLLM(llmData);
     }
-    fetchCategories();
-  }, []);
+    fetchCategoriesAndLLM();
+  }, [prompt.llm]);
 
   // Extract arguments from prompt content and set initial values
   useEffect(() => {
@@ -83,6 +87,11 @@ function PromptItem({ prompt }) {
         <Box>
           <Text fontSize="xl" fontWeight="bold" mb={2}>{prompt.title}</Text>
           <Badge colorScheme="teal" fontSize="0.9em">{categoryName}</Badge>
+          {llm && (
+            <Badge ml={2} colorScheme={llm.type === 'specific' ? 'blue' : 'green'} fontSize="0.9em">
+              {llm.name}
+            </Badge>
+          )}
         </Box>
         <Tooltip label="Copy prompt" fontSize="md">
           <IconButton

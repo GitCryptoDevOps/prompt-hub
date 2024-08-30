@@ -8,6 +8,7 @@ PromptHub is an open-source project created by Bruno Delb. It is a React.js appl
 - **Category Management:** Create, update, and delete categories to better organize your prompts.
 - **Copy to Clipboard:** Easily copy prompts to the clipboard with any custom arguments injected.
 - **Database Backup and Restore:** Export and import your prompt database to a JSON file for backup and restoration.
+- **LLM Management:** Manage and configure various Large Language Models (LLMs) used within the application.
 - **Responsive Design:** Built using Chakra UI for a responsive and accessible user interface.
 
 ## Installation
@@ -30,7 +31,15 @@ Make sure you have the following installed on your machine:
     cd prompt-hub
     ```
 
-2. **Install dependencies:**
+2. **Install dependencies for the main application:**
+
+    Navigate to the `react-app` directory:
+
+    ```bash
+    cd react-app
+    ```
+
+    Install the dependencies:
 
     ```bash
     npm install
@@ -38,7 +47,15 @@ Make sure you have the following installed on your machine:
     yarn install
     ```
 
-3. **Run the development server:**
+3. **Build the application:**
+
+    ```bash
+    npm run build
+    # or
+    yarn build
+    ```
+
+4. **Run the development server:**
 
     ```bash
     npm start
@@ -67,6 +84,16 @@ Make sure you have the following installed on your machine:
 1. Go to the "Settings" section.
 2. Use the "Export Database" button to download a JSON file of your current database.
 3. Use the "Import Database" button to restore a database from a JSON file.
+
+### LLM Management
+
+1. Navigate to the "LLMs" section from the navigation bar.
+2. Add and configure different Large Language Models (LLMs) used within the application.
+3. Update or remove LLMs as necessary.
+
+## Chrome Extension
+
+The `chrome-extension` directory contains a Chrome extension related to PromptHub. **Please note that the Chrome extension is currently not operational**. If you are interested in using or developing the extension, you may need to resolve issues related to Content Security Policy (CSP) and other configuration settings.
 
 ## Contributing
 
